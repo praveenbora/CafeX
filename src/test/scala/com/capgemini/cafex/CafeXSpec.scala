@@ -1,6 +1,6 @@
 package com.capgemini.cafex
 import org.scalatest._
-
+import scala.math.BigDecimal.RoundingMode.HALF_UP
 trait DefaultMenu {
   val defaultMenu: Menu = Menu(
     MenuItem("Cola", isDrink = true, "Cold", 0.5) ::
@@ -100,5 +100,44 @@ class CafeXSpec extends FlatSpec {
     assert(total == 0.5)
   }
 
-  
+  // Step2 : Service Charge
+  "Service Charge" should "be able to apply service charge for purchased items" in new DefaultMenu {
+    private val bill = CafeX(defaultMenu)
+    assertCompiles("bill.serviceCharge")
+  }
+  it should "not apply service charge when all purchased items are drinks" in new DefaultMenu {
+    private val serviceCharge = CafeX(defaultMenu, "Cola", "Coffee").serviceCharge
+    assert(serviceCharge == 0)
+  }
+
+  it should "apply a service charge of 10% to the total bill (rounded to 2 decimal places), when purchased items include any food" in new DefaultMenu {
+    private val bill = CafeX(defaultMenu, "Cola", "Coffee", "Cheese Sandwich")
+    private val expectedServiceCharge = (bill.subTotal * 0.1).setScale(2, HALF_UP)
+    assert(bill.serviceCharge == expectedServiceCharge)
+  }
+
+  it should "apply a service charge of 20% to the total bill with maximum 20 GBP service charge, when purchased items include any hot food" in new DefaultMenu {
+    private val bill = CafeX(defaultMenu, "Cola", "Coffee", "Steak Sandwich")
+    private val expectedServiceCharge = (bill.subTotal * 0.2).setScale(2, HALF_UP)
+    assert(bill.serviceCharge == expectedServiceCharge)
+  }
+
+  // Total bill
+  "Total Bill" should "be sum of subTotal and serviceCharge - items(Cola,Coffee)" in new DefaultMenu {
+    private val bill = CafeX(defaultMenu, "Cola", "Coffee")
+    private val total = CafeX(defaultMenu, "Cola", "Coffee").total
+    assert(total == bill.subTotal+bill.serviceCharge)
+  }
+
+  it should "be sum of subTotal and serviceCharge - items(Cola,Coffee,Cheese Sandwich)" in new DefaultMenu {
+    private val bill = CafeX(defaultMenu, "Cola", "Coffee", "Cheese Sandwich")
+    private val total = CafeX(defaultMenu, "Cola", "Coffee", "Cheese Sandwich").total
+    assert(total == bill.subTotal+bill.serviceCharge)
+  }
+
+  it should "be sum of subTotal and serviceCharge - items(Cola,Coffee,Steak Sandwich)" in new DefaultMenu {
+    private val bill = CafeX(defaultMenu, "Cola", "Coffee", "Steak Sandwich")
+    private val total = CafeX(defaultMenu, "Cola", "Coffee", "Steak Sandwich").total
+    assert(total == bill.subTotal+bill.serviceCharge)
+  }
 }
